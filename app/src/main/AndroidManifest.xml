@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.ACCESS_NOTIFICATION_POLICY" />
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
+
+    <application
+        android:allowBackup="true"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="@xml/backup_rules"
+        android:icon="@drawable/ic_notification"
+        android:label="@string/app_name"
+        android:roundIcon="@drawable/ic_notification"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.SecurityApp"
+        tools:targetApi="31">
+        
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:theme="@style/Theme.SecurityApp">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+        
+        <activity
+            android:name=".SecurityActivity"
+            android:exported="false"
+            android:theme="@style/Theme.SecurityApp"
+            android:parentActivityName=".MainActivity" />
+            
+        <activity
+            android:name=".ScadaActivity"
+            android:exported="false"
+            android:theme="@style/Theme.SecurityApp"
+            android:parentActivityName=".MainActivity" />
+            
+        <activity
+            android:name=".IPERLActivity"
+            android:exported="false"
+            android:theme="@style/Theme.SecurityApp"
+            android:parentActivityName=".MainActivity" />
+            
+        <!-- Google Sheets Graphing Activities -->
+        <activity
+            android:name=".WeatherGraphsActivity"
+            android:exported="false"
+            android:theme="@style/Theme.SecurityApp"
+            android:parentActivityName=".ScadaActivity" />
+            
+        <activity
+            android:name=".GeyserGraphsActivity"
+            android:exported="false"
+            android:theme="@style/Theme.SecurityApp"
+            android:parentActivityName=".ScadaActivity" />
+            
+        <activity
+            android:name=".PowerGraphsActivity"
+            android:exported="false"
+            android:theme="@style/Theme.SecurityApp"
+            android:parentActivityName=".ScadaActivity" />
+            
+        <activity
+            android:name=".DvrGraphsActivity"
+            android:exported="false"
+            android:theme="@style/Theme.SecurityApp"
+            android:parentActivityName=".ScadaActivity" />
+
+        <service
+            android:name=".MyFirebaseMessagingService"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
+
+        <receiver
+            android:name=".NotificationActionReceiver"
+            android:exported="false" />
+
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_icon"
+            android:resource="@drawable/ic_notification" />
+        
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_color"
+            android:resource="@color/colorAccent" />
+
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="@string/default_notification_channel_id" />
+
+    </application>
+
+</manifest>
