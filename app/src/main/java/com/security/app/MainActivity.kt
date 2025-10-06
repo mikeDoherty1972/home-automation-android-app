@@ -23,32 +23,11 @@ class MainActivity : AppCompatActivity() {
     private lateinit var idsStatus: TextView
     private lateinit var iperlStatus: TextView
     
-    // Data Analytics TextViews
-    private lateinit var totalPointsValue: TextView
-    private lateinit var activeSensorsValue: TextView
-    private lateinit var dataRateValue: TextView
-    private lateinit var temperatureDataCount: TextView
-    private lateinit var humidityDataCount: TextView
-    private lateinit var windDataCount: TextView
-    private lateinit var powerDataCount: TextView
-    private lateinit var dvrDataCount: TextView
-    private lateinit var dataAnalyticsTimestamp: TextView
-    
     // Card views for alarm color changes
     private lateinit var securityCard: androidx.cardview.widget.CardView
     private lateinit var scadaCard: androidx.cardview.widget.CardView
     private lateinit var idsCard: androidx.cardview.widget.CardView
     private lateinit var iperlCard: androidx.cardview.widget.CardView
-    
-    // Data analytics tracking
-    private var totalDataPoints = 0
-    private var temperaturePoints = 0
-    private var humidityPoints = 0
-    private var windPoints = 0
-    private var powerPoints = 0
-    private var dvrPoints = 0
-    private var lastUpdateTime = System.currentTimeMillis()
-    private var dataRate = 0.0
     
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -71,17 +50,6 @@ class MainActivity : AppCompatActivity() {
         scadaCard = findViewById(R.id.scadaCard)
         idsCard = findViewById(R.id.idsCard)
         iperlCard = findViewById(R.id.iperlCard)
-        
-        // Initialize data analytics views
-        totalPointsValue = findViewById(R.id.totalPointsValue)
-        activeSensorsValue = findViewById(R.id.activeSensorsValue)
-        dataRateValue = findViewById(R.id.dataRateValue)
-        temperatureDataCount = findViewById(R.id.temperatureDataCount)
-        humidityDataCount = findViewById(R.id.humidityDataCount)
-        windDataCount = findViewById(R.id.windDataCount)
-        powerDataCount = findViewById(R.id.powerDataCount)
-        dvrDataCount = findViewById(R.id.dvrDataCount)
-        dataAnalyticsTimestamp = findViewById(R.id.dataAnalyticsTimestamp)
         
         // Create notification channel
         createNotificationChannel()
@@ -242,12 +210,8 @@ class MainActivity : AppCompatActivity() {
         runOnUiThread {
             statusText.text = "🏠 Home Automation Hub - All Systems Online"
             timestampText.text = "Last Update: ${java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.getDefault()).format(java.util.Date())}"
-            
             // Update individual status blocks
             updateStatusBlocks(data)
-            
-            // Update data analytics with Firebase data
-            updateDataAnalytics(data)
         }
     }
     
@@ -270,9 +234,6 @@ class MainActivity : AppCompatActivity() {
                 metersOnline > 0 -> "$metersOnline Meters Online"
                 else -> "No Meter Data"
             }
-            
-            // Update data analytics with Google Sheets data
-            updateGoogleSheetsAnalytics(gaugeData)
         }
     }
 
@@ -413,122 +374,6 @@ class MainActivity : AppCompatActivity() {
         iperlCard.setOnLongClickListener {
             testIPERLAlarm()
             true
-        }
-    }
-    
-    private fun updateDataAnalytics(data: Map<String, Any>?) {
-        if (data == null) return
-        
-        // Count data points from Firebase sensors
-        var newTemperaturePoints = 0
-        var newHumidityPoints = 0  
-        var newWindPoints = 0
-        var newPowerPoints = 0
-        var newDvrPoints = 0
-        
-        // Count temperature sensors
-        if (data["temp in"] != null) newTemperaturePoints++
-        if (data["temp out"] != null) newTemperaturePoints++
-        
-        // Count humidity sensors
-        if (data["humidity"] != null) newHumidityPoints++
-        
-        // Count wind sensors
-        if (data["wind_speed"] != null) newWindPoints++
-        if (data["wind_direction"] != null) newWindPoints++
-        
-        // Count power sensors
-        if (data["kw"] != null) newPowerPoints++
-        if (data["amps"] != null) newPowerPoints++
-        if (data["voltage"] != null) newPowerPoints++
-        
-        // Count DVR sensors
-        if (data["dvr_temp"] != null) newDvrPoints++
-        if (data["dvr_status"] != null) newDvrPoints++
-        
-        // Update totals
-        temperaturePoints += newTemperaturePoints
-        humidityPoints += newHumidityPoints
-        windPoints += newWindPoints
-        powerPoints += newPowerPoints
-        dvrPoints += newDvrPoints
-        totalDataPoints = temperaturePoints + humidityPoints + windPoints + powerPoints + dvrPoints
-        
-        // Calculate data rate (points per minute)
-        val currentTime = System.currentTimeMillis()
-        val timeDiff = (currentTime - lastUpdateTime) / 1000.0 / 60.0 // minutes
-        if (timeDiff > 0) {
-            val newPointsThisUpdate = newTemperaturePoints + newHumidityPoints + newWindPoints + newPowerPoints + newDvrPoints
-            dataRate = newPointsThisUpdate / timeDiff
-        }
-        lastUpdateTime = currentTime
-        
-        // Count active sensors (sensors with recent data)
-        var activeSensors = 0
-        val sensorTypes = listOf("temp in", "temp out", "humidity", "wind_speed", "kw", "amps", "dvr_temp")
-        sensorTypes.forEach { sensorType ->
-            if (data[sensorType] != null) activeSensors++
-        }
-        
-        // Update UI on main thread
-        runOnUiThread {
-            totalPointsValue.text = totalDataPoints.toString()
-            activeSensorsValue.text = activeSensors.toString()
-            dataRateValue.text = String.format("%.1f/min", dataRate)
-            
-            temperatureDataCount.text = "$temperaturePoints points"
-            humidityDataCount.text = "$humidityPoints points"
-            windDataCount.text = "$windPoints points"
-            powerDataCount.text = "$powerPoints points"
-            dvrDataCount.text = "$dvrPoints points"
-            
-            dataAnalyticsTimestamp.text = "Last Updated: ${java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.getDefault()).format(java.util.Date())}"
-        }
-    }
-    
-    private fun updateGoogleSheetsAnalytics(gaugeData: Map<String, Any>?) {
-        if (gaugeData == null) return
-        
-        // Count additional data points from Google Sheets
-        var additionalPoints = 0
-        
-        // Water meter data points
-        if (gaugeData["MikeWaterReading"] != null) additionalPoints++
-        if (gaugeData["AllenWaterReading"] != null) additionalPoints++
-        if (gaugeData["MikeRSSI"] != null) additionalPoints++
-        if (gaugeData["AllenRSSI"] != null) additionalPoints++
-        
-        // Additional weather data from Google Sheets
-        if (gaugeData["outdoor_temp"] != null) {
-            temperaturePoints++
-            additionalPoints++
-        }
-        if (gaugeData["indoor_temp"] != null) {
-            temperaturePoints++
-            additionalPoints++
-        }
-        if (gaugeData["humidity"] != null) {
-            humidityPoints++
-            additionalPoints++
-        }
-        if (gaugeData["wind_speed"] != null) {
-            windPoints++
-            additionalPoints++
-        }
-        if (gaugeData["wind_direction"] != null) {
-            windPoints++
-            additionalPoints++
-        }
-        
-        // Add to total
-        totalDataPoints += additionalPoints
-        
-        // Update UI
-        runOnUiThread {
-            totalPointsValue.text = totalDataPoints.toString()
-            temperatureDataCount.text = "$temperaturePoints points"
-            humidityDataCount.text = "$humidityPoints points" 
-            windDataCount.text = "$windPoints points"
         }
     }
     
