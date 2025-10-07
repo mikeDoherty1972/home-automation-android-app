@@ -32,27 +32,30 @@ android {
     buildFeatures {
         viewBinding true
     }
+    packagingOptions {
+        pickFirst 'META-INF/DEPENDENCIES'
+        pickFirst 'META-INF/LICENSE'
+        pickFirst 'META-INF/LICENSE.txt'
+        pickFirst 'META-INF/license.txt'
+        pickFirst 'META-INF/NOTICE'
+        pickFirst 'META-INF/NOTICE.txt'
+        pickFirst 'META-INF/notice.txt'
+        pickFirst 'META-INF/ASL2.0'
+    }
 }
 
 dependencies {
-    implementation 'androidx.core:core-ktx:1.12.0'
-    implementation 'androidx.appcompat:appcompat:1.6.1'
-    implementation 'com.google.android.material:material:1.10.0'
-    implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
-    
-    // Firebase
-    implementation platform('com.google.firebase:firebase-bom:32.5.0')
-    implementation 'com.google.firebase:firebase-messaging-ktx'
-    implementation 'com.google.firebase:firebase-firestore-ktx'
-    implementation 'com.google.firebase:firebase-database-ktx'
-    implementation 'com.google.firebase:firebase-analytics-ktx'
-    
-    // Lifecycle
+    implementation 'com.google.firebase:firebase-auth-ktx:22.3.1'
+    implementation 'com.google.firebase:firebase-messaging-ktx:23.4.1'
+    implementation 'com.google.firebase:firebase-firestore-ktx:25.0.0'
+    implementation 'com.google.firebase:firebase-database-ktx:21.0.0'
+    implementation 'com.google.firebase:firebase-analytics-ktx:22.0.0'
     implementation 'androidx.lifecycle:lifecycle-runtime-ktx:2.7.0'
     implementation 'androidx.work:work-runtime-ktx:2.8.1'
-    
-    // Charts for graphing sensor data
     implementation 'com.github.PhilJay:MPAndroidChart:v3.1.0'
-    
-    // Note: GoogleSheetsReader uses simple CSV export - no additional dependencies needed
+    implementation 'com.google.android.gms:play-services-auth:20.7.0'
+    implementation 'com.google.api-client:google-api-client-android:1.35.0'
+    implementation 'com.google.apis:google-api-services-drive:v3-rev20230815-2.0.0'
+    implementation 'com.google.android.material:material:1.11.0'
+    implementation 'com.google.http-client:google-http-client:1.43.3'
 }

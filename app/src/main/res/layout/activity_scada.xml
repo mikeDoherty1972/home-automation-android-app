@@ -859,7 +859,7 @@
                         android:layout_weight="1"
                         android:layout_height="56dp"
                         android:layout_marginEnd="8dp"
-                        android:text="💡 LIGHTS ON"
+                        android:text="\uD83D\uDCA1 LIGHTS ON"
                         android:textColor="#ffffff"
                         android:backgroundTint="#4CAF50"
                         android:textSize="14sp"
@@ -871,13 +871,24 @@
                         android:layout_weight="1"
                         android:layout_height="56dp"
                         android:layout_marginStart="8dp"
-                        android:text="🌙 LIGHTS OFF"
+                        android:text="\uD83C\uDF19 LIGHTS OFF"
                         android:textColor="#ffffff"
                         android:backgroundTint="#FF5722"
                         android:textSize="14sp"
                         android:textStyle="bold" />
 
                 </LinearLayout>
+
+                <!-- Test Drive Write Button -->
+                <Button
+                    android:id="@+id/testDriveWriteButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="Test Drive Write"
+                    android:textColor="#ffffff"
+                    android:backgroundTint="#2196F3"
+                    android:textStyle="bold" />
 
                 <!-- Technical Details -->
                 <TextView
@@ -1197,6 +1208,15 @@
                 android:padding="16dp" />
 
         </androidx.cardview.widget.CardView>
+
+        <!-- Google Sign-In Button -->
+        <com.google.android.gms.common.SignInButton
+            android:id="@+id/googleSignInButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginTop="16dp"
+            android:layout_marginBottom="16dp" />
 
     </LinearLayout>
 

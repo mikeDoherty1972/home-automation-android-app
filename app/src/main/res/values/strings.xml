@@ -4,4 +4,5 @@
     <string name="default_notification_channel_id">security_notifications</string>
     <string name="channel_name">Security Notifications</string>
     <string name="channel_description">Notifications for security system alerts</string>
+    <string name="default_web_client_id">741577311231-rl2tf92edh9a84edpro9hpc14pr70uc3.apps.googleusercontent.com</string>
 </resources>
