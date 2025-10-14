@@ -221,16 +221,20 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="-- L"
-                            android:textSize="20sp"
+                            android:textSize="12sp"
                             android:textColor="#ffffff"
-                            android:textStyle="bold" />
+                            android:textStyle="bold"
+                            android:gravity="center_horizontal"
+                            android:layout_gravity="center_horizontal" />
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="Daily Usage"
                             android:textSize="12sp"
-                            android:textColor="#BBDEFB" />
+                            android:textColor="#BBDEFB"
+                            android:gravity="center_horizontal"
+                            android:layout_gravity="center_horizontal" />
 
                     </LinearLayout>
 
@@ -254,16 +258,20 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="-- L"
-                            android:textSize="20sp"
+                            android:textSize="12sp"
                             android:textColor="#ffffff"
-                            android:textStyle="bold" />
+                            android:textStyle="bold"
+                            android:gravity="center_horizontal"
+                            android:layout_gravity="center_horizontal" />
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="Monthly Usage"
                             android:textSize="12sp"
-                            android:textColor="#BBDEFB" />
+                            android:textColor="#BBDEFB"
+                            android:gravity="center_horizontal"
+                            android:layout_gravity="center_horizontal" />
 
                     </LinearLayout>
 
@@ -287,16 +295,20 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="-- L"
-                            android:textSize="20sp"
+                            android:textSize="12sp"
                             android:textColor="#ffffff"
-                            android:textStyle="bold" />
+                            android:textStyle="bold"
+                            android:gravity="center_horizontal"
+                            android:layout_gravity="center_horizontal" />
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="Total Usage"
                             android:textSize="12sp"
-                            android:textColor="#BBDEFB" />
+                            android:textColor="#BBDEFB"
+                            android:gravity="center_horizontal"
+                            android:layout_gravity="center_horizontal" />
 
                     </LinearLayout>
 

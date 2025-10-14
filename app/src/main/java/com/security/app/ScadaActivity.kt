@@ -17,7 +17,8 @@ import com.google.api.client.json.gson.GsonFactory
 import com.google.api.services.drive.Drive
 import com.google.api.services.drive.DriveScopes
 import com.google.api.services.drive.model.File
-import com.google.api.services.drive.model.FileList
+import com.google.api.client.http.ByteArrayContent
+import com.google.api.client.http.javanet.NetHttpTransport
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.firestore.FirebaseFirestore
@@ -28,7 +29,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
-import com.google.api.client.http.javanet.NetHttpTransport
+import kotlinx.coroutines.delay
+import java.util.Timer
+import java.util.TimerTask
 
 class ScadaActivity : AppCompatActivity() {
 
@@ -86,12 +89,11 @@ class ScadaActivity : AppCompatActivity() {
     private lateinit var googleSignInClient: GoogleSignInClient
     private var driveService: Drive? = null
     private val RC_SIGN_IN = 4001
-    private val DRIVE_FILE_NAME = "messages_received.txt"
+    // Google Drive file ID for messages_received.txt
+    private val DRIVE_FILE_ID = "1rIlYuXnuITRT2Thm5o4yDBmCXktx05j6"
+    private var lightsPollTimer: Timer? = null
+    private val LIGHTS_TXT_FILE_ID = "1eEXzhHy_9ZQGWsnC-0wxge2PiJacho0i"
 
-    // Cache for Drive folder IDs
-    private var cachedFolderId: String? = null
-    private val folderNames = listOf("python", "current", "sensors")
-    
     private lateinit var auth: FirebaseAuth
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -150,12 +152,72 @@ class ScadaActivity : AppCompatActivity() {
         lightsOffButton.isEnabled = false
         Log.d("ScadaActivity", "Lights buttons disabled at startup")
         lightsOnButton.setOnClickListener {
-            Log.d("ScadaActivity", "Lights ON button clicked")
-            sendLightsCommand("on")
+            Log.d("ScadaActivity", "[DEBUG] Lights ON button clicked")
+            val drive = driveService
+            val account = GoogleSignIn.getLastSignedInAccount(this)
+            Log.d("ScadaActivity", "[DEBUG] Using Google account: \\${account?.email}")
+            if (drive == null) {
+                Log.w("ScadaActivity", "[DEBUG] Drive service not initialized for lights on")
+                android.widget.Toast.makeText(this, "[DEBUG] Drive not initialized", android.widget.Toast.LENGTH_LONG).show()
+            } else {
+                CoroutineScope(Dispatchers.IO).launch {
+                    val fileId = "1OvBr8BHa_v-H_W43utp7UyuY1uUeX_A2"
+                    val fileExists = checkDriveFileExistsWithDebug(drive, fileId)
+                    withContext(Dispatchers.Main) {
+                        if (!fileExists) {
+                            android.widget.Toast.makeText(this@ScadaActivity, "[DEBUG] Drive file not found or no access. Check sharing settings.", android.widget.Toast.LENGTH_LONG).show()
+                            return@withContext
+                        }
+                    }
+                    try {
+                        Log.d("ScadaActivity", "[DEBUG] Attempting to write 'Lights on' to file: $fileId")
+                        updateDriveFile(drive, fileId, "Lights on")
+                        withContext(Dispatchers.Main) {
+                            Log.d("ScadaActivity", "[DEBUG] 'Lights on' written to Drive file successfully")
+                            android.widget.Toast.makeText(this@ScadaActivity, "[DEBUG] 'Lights on' sent to Drive!", android.widget.Toast.LENGTH_LONG).show()
+                        }
+                    } catch (e: Exception) {
+                        Log.e("ScadaActivity", "[DEBUG] Error writing 'Lights on' to Drive", e)
+                        withContext(Dispatchers.Main) {
+                            android.widget.Toast.makeText(this@ScadaActivity, "[DEBUG] Drive write error: \\${e.message}", android.widget.Toast.LENGTH_LONG).show()
+                        }
+                    }
+                }
+            }
         }
         lightsOffButton.setOnClickListener {
-            Log.d("ScadaActivity", "Lights OFF button clicked")
-            sendLightsCommand("off")
+            Log.d("ScadaActivity", "[DEBUG] Lights OFF button clicked")
+            val drive = driveService
+            val account = GoogleSignIn.getLastSignedInAccount(this)
+            Log.d("ScadaActivity", "[DEBUG] Using Google account: \\${account?.email}")
+            if (drive == null) {
+                Log.w("ScadaActivity", "[DEBUG] Drive service not initialized for lights off")
+                android.widget.Toast.makeText(this, "[DEBUG] Drive not initialized", android.widget.Toast.LENGTH_LONG).show()
+            } else {
+                CoroutineScope(Dispatchers.IO).launch {
+                    val fileId = "1OvBr8BHa_v-H_W43utp7UyuY1uUeX_A2"
+                    val fileExists = checkDriveFileExistsWithDebug(drive, fileId)
+                    withContext(Dispatchers.Main) {
+                        if (!fileExists) {
+                            android.widget.Toast.makeText(this@ScadaActivity, "[DEBUG] Drive file not found or no access. Check sharing settings.", android.widget.Toast.LENGTH_LONG).show()
+                            return@withContext
+                        }
+                    }
+                    try {
+                        Log.d("ScadaActivity", "[DEBUG] Attempting to write 'Lights off' to file: $fileId")
+                        updateDriveFile(drive, fileId, "Lights off")
+                        withContext(Dispatchers.Main) {
+                            Log.d("ScadaActivity", "[DEBUG] 'Lights off' written to Drive file successfully")
+                            android.widget.Toast.makeText(this@ScadaActivity, "[DEBUG] 'Lights off' sent to Drive!", android.widget.Toast.LENGTH_LONG).show()
+                        }
+                    } catch (e: Exception) {
+                        Log.e("ScadaActivity", "[DEBUG] Error writing 'Lights off' to Drive", e)
+                        withContext(Dispatchers.Main) {
+                            android.widget.Toast.makeText(this@ScadaActivity, "[DEBUG] Drive write error: \\${e.message}", android.widget.Toast.LENGTH_LONG).show()
+                        }
+                    }
+                }
+            }
         }
 
         // Setup click listeners for graphs
@@ -168,12 +230,9 @@ class ScadaActivity : AppCompatActivity() {
 
         // Setup Google Drive sign-in
         setupGoogleDriveSignIn()
+        // Start polling for Y21_read_status from Drive file
+        startY21ReadPolling()
 
-        // Test Drive Write Button
-        findViewById<android.widget.Button>(R.id.testDriveWriteButton).setOnClickListener {
-            Log.d("ScadaActivity", "Test Drive Write button clicked")
-            testDriveWrite()
-        }
 
         // Google Sign-In button
         val signInButton = findViewById<com.google.android.gms.common.SignInButton>(R.id.googleSignInButton)
@@ -181,7 +240,7 @@ class ScadaActivity : AppCompatActivity() {
             val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
                 .requestEmail()
                 .requestIdToken(getString(R.string.default_web_client_id))
-                .requestScopes(Scope(DriveScopes.DRIVE_FILE))
+                .requestScopes(Scope(DriveScopes.DRIVE)) // Changed from DRIVE_FILE to DRIVE
                 .build()
             googleSignInClient = GoogleSignIn.getClient(this, gso)
             startActivityForResult(googleSignInClient.signInIntent, RC_SIGN_IN)
@@ -323,110 +382,6 @@ class ScadaActivity : AppCompatActivity() {
         }
     }
 
-    private fun sendLightsCommand(command: String) {
-        Log.d("ScadaActivity", "sendLightsCommand called with command: $command")
-        val drive = driveService ?: run {
-            Log.w("ScadaActivity", "Drive service not initialized")
-            runOnUiThread {
-                android.widget.Toast.makeText(this, "Drive not initialized", android.widget.Toast.LENGTH_LONG).show()
-            }
-            return
-        }
-        CoroutineScope(Dispatchers.IO).launch {
-            try {
-                Log.d("ScadaActivity", "Attempting to find or create Drive file for lights command: $command")
-                val fileId = findOrCreateDriveFile(drive)
-                Log.d("ScadaActivity", "Drive file ID for lights command: $fileId")
-                when (command) {
-                    "on" -> updateDriveFile(drive, fileId, "Lights on")
-                    "off" -> updateDriveFile(drive, fileId, "")
-                }
-                withContext(Dispatchers.Main) {
-                    Log.d("ScadaActivity", "Lights command sent to Drive: $command")
-                    android.widget.Toast.makeText(this@ScadaActivity, "Lights command sent: $command", android.widget.Toast.LENGTH_SHORT).show()
-                }
-            } catch (e: UserRecoverableAuthIOException) {
-                withContext(Dispatchers.Main) {
-                    Log.w("ScadaActivity", "UserRecoverableAuthIOException: ${e.message}")
-                    startActivityForResult(e.intent, RC_SIGN_IN)
-                }
-            } catch (e: Exception) {
-                withContext(Dispatchers.Main) {
-                    Log.w("ScadaActivity", "Error sending lights command to Drive", e)
-                    android.widget.Toast.makeText(this@ScadaActivity, "Drive error: ${e.message}", android.widget.Toast.LENGTH_LONG).show()
-                }
-            }
-        }
-    }
-
-    private suspend fun findOrCreateDriveFile(drive: Drive, fileName: String = DRIVE_FILE_NAME): String = withContext(Dispatchers.IO) {
-        // Use cached folder ID if available
-        var parentId = cachedFolderId
-        if (parentId == null) {
-            parentId = null
-            for (folderName in folderNames) {
-                // Search for all folders with the correct name and parent
-                val folderResult = drive.files().list()
-                    .setQ("mimeType = 'application/vnd.google-apps.folder' and name = '$folderName' and trashed = false and " +
-                            (if (parentId != null) "'$parentId' in parents" else "'root' in parents"))
-                    .setSpaces("drive")
-                    .setFields("files(id, name, parents, createdTime)")
-                    .execute()
-                if (folderResult.files.size > 1) {
-                    Log.w("ScadaActivity", "Duplicate folders found for '$folderName' under parent ${parentId ?: "root"}:")
-                    folderResult.files.forEach { f ->
-                        Log.w("ScadaActivity", "  id=${f.id}, createdTime=${f.createdTime}, parents=${f.parents}")
-                    }
-                }
-                // Pick the oldest folder if duplicates exist, or the first if only one
-                val folder = folderResult.files.minByOrNull { it.createdTime.value }
-                parentId = if (folder != null) {
-                    Log.d("ScadaActivity", "Using folder '$folderName' with id: ${folder.id}")
-                    folder.id
-                } else {
-                    val metadata = File().apply {
-                        name = folderName
-                        mimeType = "application/vnd.google-apps.folder"
-                        parents = listOf(parentId ?: "root")
-                    }
-                    val createdId = drive.files().create(metadata).setFields("id").execute().id
-                    Log.d("ScadaActivity", "Created folder '$folderName' with id: $createdId")
-                    createdId
-                }
-            }
-            // Cache the final folder ID
-            cachedFolderId = parentId
-        }
-        // Now parentId is the sensors folder ID
-        val result: FileList = drive.files().list()
-            .setQ("name = '$fileName' and trashed = false and '$parentId' in parents")
-            .setSpaces("drive")
-            .setFields("files(id, name)")
-            .execute()
-        val file = result.files.firstOrNull()
-        return@withContext if (file != null) {
-            Log.d("ScadaActivity", "Found file '$fileName' with id: ${file.id}")
-            file.id
-        } else {
-            val metadata = File().apply {
-                name = fileName
-                mimeType = "text/plain"
-                parents = listOf(parentId)
-            }
-            val created = drive.files().create(metadata)
-                .setFields("id")
-                .execute()
-            Log.d("ScadaActivity", "Created file '$fileName' with id: ${created.id}")
-            created.id
-        }
-    }
-
-    private suspend fun updateDriveFile(drive: Drive, fileId: String, content: String) = withContext(Dispatchers.IO) {
-        val contentStream = java.io.ByteArrayInputStream(content.toByteArray())
-        val fileMetadata = File()
-        drive.files().update(fileId, fileMetadata, com.google.api.client.http.InputStreamContent("text/plain", contentStream)).execute()
-    }
-
     private fun ensureFreshGoogleSignIn() {
         val account = GoogleSignIn.getLastSignedInAccount(this)
         if (account == null || account.idToken.isNullOrEmpty()) {
@@ -446,7 +401,7 @@ class ScadaActivity : AppCompatActivity() {
         val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
             .requestIdToken(getString(R.string.default_web_client_id))
             .requestEmail()
-            .requestScopes(Scope(DriveScopes.DRIVE_FILE))
+            .requestScopes(Scope(DriveScopes.DRIVE)) // Changed from DRIVE_FILE to DRIVE
             .build()
         googleSignInClient = GoogleSignIn.getClient(this, gso)
         ensureFreshGoogleSignIn()
@@ -504,7 +459,7 @@ class ScadaActivity : AppCompatActivity() {
                 if (task.isSuccessful) {
                     Log.d("ScadaActivity", "Firebase authentication successful")
                     // Now that we are authenticated, we can start listening for Firestore updates
-                    listenForLightsStatus()
+                    //listenForLightsStatus()
                 } else {
                     Log.w("ScadaActivity", "Firebase authentication failed", task.exception)
                     runOnUiThread {
@@ -519,7 +474,7 @@ class ScadaActivity : AppCompatActivity() {
         if (account == null) return
         Log.i("ScadaActivity", "Signed-in Google account: ${account.email}")
         val credential = GoogleAccountCredential.usingOAuth2(
-            this, listOf(DriveScopes.DRIVE_FILE)
+            this, listOf(DriveScopes.DRIVE) // Changed from DRIVE_FILE to DRIVE
         )
         credential.selectedAccount = account.account
         driveService = Drive.Builder(
@@ -533,76 +488,165 @@ class ScadaActivity : AppCompatActivity() {
             findViewById<android.widget.Button>(R.id.lightsOffButton).isEnabled = true
             Log.d("ScadaActivity", "Lights buttons enabled after Drive initialization")
         }
-    }
-
-    private fun listenForLightsStatus() {
-        db.collection("scada_controls").document("lights_status")
-            .addSnapshotListener { documentSnapshot: DocumentSnapshot?, e: FirebaseFirestoreException? ->
-                if (e != null) {
-                    android.util.Log.w("ScadaActivity", "Lights status listen failed.", e)
-                    runOnUiThread {
-                        android.widget.Toast.makeText(this, "Firestore listen error: ${e.message}", android.widget.Toast.LENGTH_LONG).show()
-                    }
-                    return@addSnapshotListener
-                }
-                if (documentSnapshot != null && documentSnapshot.exists()) {
-                    val data = documentSnapshot.data ?: return@addSnapshotListener
-                    Log.d("ScadaActivity", "Firestore lights_status update: $data")
-                    updateLightsDisplay(data)
-                } else {
-                    Log.d("ScadaActivity", "Firestore lights_status: No document or does not exist.")
-                }
-            }
-    }
-    private fun updateLightsDisplay(data: Map<String, Any>) {
-        runOnUiThread {
-            val lightsOn = data["lights_on"] as? Boolean ?: false
-            val lastCommand = data["last_command"] as? String ?: "--"
-            val m22Value = data["M22_write_sent"] as? Long ?: 0
-            // Show Y21_read as "N/A" if missing, otherwise show value
-            val y21Value = when (val y = data["Y21_read_status"]) {
-                is Number -> y.toLong()
-                is String -> y.toLongOrNull() ?: 0L
-                else -> null
-            }
-            val y21Display = y21Value?.toString() ?: "N/A"
-            val commandSuccess = data["command_success"] as? Boolean ?: false
-            // Update status display
-            if (lightsOn) {
-                lightsStatus.text = "💡 ON"
-                lightsStatus.setTextColor(getColor(android.R.color.holo_green_light))
-            } else {
-                lightsStatus.text = "💡 OFF"
-                lightsStatus.setTextColor(getColor(android.R.color.holo_red_light))
-            }
-            // Update technical details
-            val successIcon = if (commandSuccess) "✅" else "❌"
-            lightsDetails.text = "Sent TXT: $m22Value | Y21_read: $y21Display | $successIcon Last: $lastCommand"
-        }
-    }
-
-    private fun testDriveWrite() {
-        val drive = driveService ?: run {
-            Log.w("ScadaActivity", "Drive service not initialized for test write")
-            runOnUiThread {
-                android.widget.Toast.makeText(this, "Drive not initialized", android.widget.Toast.LENGTH_LONG).show()
-            }
-            return
-        }
+        // List all accessible files for debugging
         CoroutineScope(Dispatchers.IO).launch {
+            listAllDriveFilesForDebug()
+        }
+        // Start polling the lights_on.txt file for status updates
+        startPollingLightsFile()
+    }
+
+    // List all accessible files and log their names and IDs
+    private suspend fun listAllDriveFilesForDebug() = withContext(Dispatchers.IO) {
+        val drive = driveService ?: return@withContext
+        try {
+            val result = drive.files().list().setPageSize(100).setFields("files(id, name)").execute()
+            val files = result.files
+            if (files == null || files.isEmpty()) {
+                Log.d("ScadaActivity", "[DEBUG] No files found in Drive.")
+            } else {
+                Log.d("ScadaActivity", "[DEBUG] Files accessible to app:")
+                for (file in files) {
+                    Log.d("ScadaActivity", "[DEBUG] File: ${file.name} (ID: ${file.id})")
+                }
+            }
+        } catch (e: Exception) {
+            Log.e("ScadaActivity", "[DEBUG] Error listing Drive files", e)
+        }
+    }
+
+    private fun startPollingLightsFile() {
+        lightsPollTimer?.cancel()
+        lightsPollTimer = Timer()
+        lightsPollTimer?.scheduleAtFixedRate(object : TimerTask() {
+            override fun run() {
+                readLightsFileFromDrive()
+            }
+        }, 0, 30_000)
+    }
+
+    private fun readLightsFileFromDrive() {
+        val drive = driveService ?: return
+        Thread {
             try {
-                val fileId = findOrCreateDriveFile(drive, "test_write.txt")
-                updateDriveFile(drive, fileId, "Test file written at: ${java.util.Date()}")
-                withContext(Dispatchers.Main) {
-                    Log.d("ScadaActivity", "Test file written successfully")
-                    android.widget.Toast.makeText(this@ScadaActivity, "Test file written to Drive!", android.widget.Toast.LENGTH_LONG).show()
+                val inputStream = drive.files().get(LIGHTS_TXT_FILE_ID).executeMediaAsInputStream()
+                val content = inputStream.bufferedReader().use { it.readText().trim() }
+                Log.d("ScadaActivity", "[DEBUG] Read lights_on.txt value: '$content'")
+                runOnUiThread {
+                    when (content) {
+                        "1" -> {
+                            lightsStatus.text = "\uD83D\uDCA1 ON"
+                            lightsStatus.setTextColor(getColor(android.R.color.holo_green_light))
+                            lightsDetails.text = "Google Drive: 1 (ON)"
+                        }
+                        "0" -> {
+                            lightsStatus.text = "\uD83D\uDCA1 OFF"
+                            lightsStatus.setTextColor(getColor(android.R.color.holo_red_light))
+                            lightsDetails.text = "Google Drive: 0 (OFF)"
+                        }
+                        else -> {
+                            lightsStatus.text = "\uD83D\uDCA1 Unknown"
+                            lightsDetails.text = "Google Drive: '$content'"
+                        }
+                    }
                 }
             } catch (e: Exception) {
-                withContext(Dispatchers.Main) {
-                    Log.w("ScadaActivity", "Error writing test file to Drive", e)
-                    android.widget.Toast.makeText(this@ScadaActivity, "Drive test write error: ${e.message}", android.widget.Toast.LENGTH_LONG).show()
+                runOnUiThread {
+                    lightsStatus.text = "\uD83D\uDCA1 Error"
+                    lightsDetails.text = "Drive read error"
                 }
+                Log.e("ScadaActivity", "Drive read error", e)
             }
+        }.start()
+    }
+
+    override fun onDestroy() {
+        lightsPollTimer?.cancel()
+        super.onDestroy()
+    }
+
+    // Update a file in Google Drive by file ID
+    private suspend fun updateDriveFile(drive: Drive, fileId: String, content: String) = withContext(Dispatchers.IO) {
+        val contentStream = java.io.ByteArrayInputStream(content.toByteArray())
+        val fileMetadata = com.google.api.services.drive.model.File()
+        drive.files().update(fileId, fileMetadata, com.google.api.client.http.InputStreamContent("text/plain", contentStream)).execute()
+    }
+
+    // Deletes a file from Google Drive by file ID
+    private fun deleteDriveFile(drive: Drive, fileId: String) {
+        try {
+            drive.files().delete(fileId).execute()
+            Log.d("ScadaActivity", "[DEBUG] Deleted Drive file: $fileId")
+        } catch (e: Exception) {
+            Log.e("ScadaActivity", "[DEBUG] Error deleting Drive file: $fileId", e)
+        }
+    }
+
+    // Creates a new file in Google Drive with the given name and content
+    private fun createDriveFile(drive: Drive, fileName: String, content: String, parentId: String? = null): String? {
+        return try {
+            val fileMetadata = File().apply {
+                name = fileName
+                parentId?.let { parents = listOf(it) }
+            }
+            val contentStream = ByteArrayContent.fromString("text/plain", content)
+            val file = drive.files().create(fileMetadata, contentStream)
+                .setFields("id")
+                .execute()
+            Log.d("ScadaActivity", "[DEBUG] Created new Drive file: ${file.id}")
+            file.id
+        } catch (e: Exception) {
+            Log.e("ScadaActivity", "[DEBUG] Error creating Drive file", e)
+            null
+        }
+    }
+
+    // Reads the content of a Google Drive file by file ID
+    private suspend fun readDriveFileContent(drive: Drive, fileId: String): String? = withContext(Dispatchers.IO) {
+        return@withContext try {
+            val inputStream = drive.files().get(fileId).executeMediaAsInputStream()
+            inputStream.bufferedReader().use { it.readText() }
+        } catch (e: Exception) {
+            Log.e("ScadaActivity", "[DEBUG] Error reading Drive file: $fileId", e)
+            null
+        }
+    }
+
+    // Polls the Drive file every 30 seconds and updates Firestore Y21_read_status
+    private fun startY21ReadPolling() {
+        val drive = driveService ?: return
+        val firestoreDoc = db.collection("scada_controls").document("lights_status")
+        val fileId = "1eEXzhHy_9ZQGWsnC-0wxge2PiJacho0i"
+        CoroutineScope(Dispatchers.IO).launch {
+            while (true) {
+                val content = readDriveFileContent(drive, fileId)?.trim() ?: "N/A"
+                try {
+                    firestoreDoc.update("Y21_read_status", content)
+                    Log.d("ScadaActivity", "[DEBUG] Updated Firestore Y21_read_status to: $content")
+                } catch (e: Exception) {
+                    Log.e("ScadaActivity", "[DEBUG] Error updating Firestore Y21_read_status", e)
+                }
+                delay(30000) // 30 seconds
+            }
+        }
+    }
+
+    // Check if the Drive file is accessible before writing, with detailed logging
+    private suspend fun checkDriveFileExistsWithDebug(drive: Drive, fileId: String): Boolean = withContext(Dispatchers.IO) {
+        Log.d("ScadaActivity", "[DEBUG] Attempting to access Drive file with ID: $fileId")
+        try {
+            val file = drive.files().get(fileId).execute()
+            Log.d("ScadaActivity", "[DEBUG] File found: name=${file.name}, id=${file.id}, mimeType=${file.mimeType}")
+            withContext(Dispatchers.Main) {
+                android.widget.Toast.makeText(this@ScadaActivity, "[DEBUG] File found: ${file.name}", android.widget.Toast.LENGTH_LONG).show()
+            }
+            true
+        } catch (e: Exception) {
+            Log.e("ScadaActivity", "[DEBUG] Drive file not found or inaccessible: $fileId", e)
+            withContext(Dispatchers.Main) {
+                android.widget.Toast.makeText(this@ScadaActivity, "[DEBUG] File not found or inaccessible: $fileId\n${e.message}", android.widget.Toast.LENGTH_LONG).show()
+            }
+            false
         }
     }
 }

@@ -705,6 +705,7 @@
         </androidx.cardview.widget.CardView>
 
         <!-- PLC Controls Section -->
+        <!--
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -794,6 +795,7 @@
 
             </LinearLayout>
         </androidx.cardview.widget.CardView>
+        -->
 
         <!-- Outside Lights Control -->
         <TextView
@@ -879,16 +881,6 @@
 
                 </LinearLayout>
 
-                <!-- Test Drive Write Button -->
-                <Button
-                    android:id="@+id/testDriveWriteButton"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:text="Test Drive Write"
-                    android:textColor="#ffffff"
-                    android:backgroundTint="#2196F3"
-                    android:textStyle="bold" />
 
                 <!-- Technical Details -->
                 <TextView
