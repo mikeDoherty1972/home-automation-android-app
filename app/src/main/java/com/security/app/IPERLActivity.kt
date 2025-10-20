@@ -1,5 +1,6 @@
 package com.security.app
 
+import android.content.Intent
 import android.os.Bundle
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
@@ -42,6 +43,12 @@ class IPERLActivity : AppCompatActivity() {
             finish()
         }
 
+        // Wire Mike's Card to open the Mike water graphs
+        findViewById<androidx.cardview.widget.CardView>(R.id.mikeWaterSection).setOnClickListener {
+            val intent = Intent(this, MikeWaterGraphsActivity::class.java)
+            startActivity(intent)
+        }
+
         // Load all water meter data and RSSI from Google Sheets
         loadAllIPERLDataFromGoogleSheets()
     }
@@ -63,10 +70,13 @@ class IPERLActivity : AppCompatActivity() {
                 android.util.Log.d("IPERLActivity", "latestColumnKValue: $latestColumnKValue")
 
                 // Update water meter readings (use 3 decimal places)
-                totalUsage.text = String.format("%.3f L", usageStats.totalUsage)
+                totalUsage.text = String.format("%.3f L", usageStats.totalUsage.toFloat())
                 // mikeWaterReading now uses column K value
                 if (latestColumnKValue != null && latestColumnKValue.isNotEmpty()) {
-                    mikeWaterReading.text = "${latestColumnKValue} Liters"
+                    val meterFloat = latestColumnKValue.toFloatOrNull() ?: 0f
+                    val meterInt = meterFloat.toInt()
+                    android.util.Log.d("IPERLActivity", "mikeWaterReading value: $meterFloat, type: ${meterFloat::class.java}")
+                    mikeWaterReading.text = "$meterInt Liters"
                 } else {
                     mikeWaterReading.text = "No Data"
                 }

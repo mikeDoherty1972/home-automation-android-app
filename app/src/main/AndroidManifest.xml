@@ -75,6 +75,18 @@
             android:theme="@style/Theme.SecurityApp"
             android:parentActivityName=".ScadaActivity" />
 
+        <activity
+            android:name=".MikeWaterGraphsActivity"
+            android:exported="false"
+            android:theme="@style/Theme.SecurityApp"
+            android:parentActivityName=".IPERLActivity" />
+
+        <!-- Full-screen alarm activity launched when a zone has both sensors active -->
+        <activity
+            android:name=".AlarmActivity"
+            android:exported="false"
+            android:theme="@style/Theme.SecurityApp" />
+
         <service
             android:name=".MyFirebaseMessagingService"
             android:exported="false">

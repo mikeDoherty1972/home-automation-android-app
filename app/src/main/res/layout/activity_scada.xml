@@ -213,6 +213,7 @@
                 </LinearLayout>
 
             </LinearLayout>
+
         </androidx.cardview.widget.CardView>
 
         <!-- Water Pressure Gauge -->
@@ -701,7 +702,9 @@
 
                 </LinearLayout>
 
+
             </LinearLayout>
+
         </androidx.cardview.widget.CardView>
 
         <!-- PLC Controls Section -->

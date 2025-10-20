@@ -217,23 +217,28 @@ class MainActivity : AppCompatActivity() {
     
     private fun updateGaugeUI(gaugeData: Map<String, Any>?) {
         if (gaugeData == null) return
-        
-        runOnUiThread {
-            // Update IPERL Status with water meter data
-            val mikeWaterReading = (gaugeData["MikeWaterReading"] as? Double) ?: 0.0
-            val allenWaterReading = (gaugeData["AllenWaterReading"] as? Double) ?: 0.0
-            val mikeRSSI = (gaugeData["MikeRSSI"] as? Double) ?: -999.0
-            val allenRSSI = (gaugeData["AllenRSSI"] as? Double) ?: -999.0
-            
-            val metersOnline = listOf(mikeRSSI, allenRSSI).count { it != -999.0 }
-            val waterDataAvailable = listOf(mikeWaterReading, allenWaterReading).count { it > 0 }
-            
-            iperlStatus.text = when {
-                waterDataAvailable == 2 -> "2 Meters: ${String.format("%.0f", mikeWaterReading)}L / ${String.format("%.0f", allenWaterReading)}L"
-                waterDataAvailable == 1 -> "1 Meter Reading Available"
-                metersOnline > 0 -> "$metersOnline Meters Online"
-                else -> "No Meter Data"
-            }
+        // Robust parsing for water readings and RSSI
+        fun safeDouble(value: Any?): Double = when (value) {
+            is Double -> value
+            is Float -> value.toDouble()
+            is Int -> value.toDouble()
+            is Long -> value.toDouble()
+            is String -> value.toDoubleOrNull() ?: 0.0
+            else -> 0.0
+        }
+        val mikeWaterReading = safeDouble(gaugeData["MikeWaterReading"])
+        val allenWaterReading = safeDouble(gaugeData["AllenWaterReading"])
+        val mikeRSSI = safeDouble(gaugeData["MikeRSSI"])
+        val allenRSSI = safeDouble(gaugeData["AllenRSSI"])
+
+        val metersOnline = listOf(mikeRSSI, allenRSSI).count { it != -999.0 }
+        val waterDataAvailable = listOf(mikeWaterReading, allenWaterReading).count { it > 0 }
+
+        iperlStatus.text = when {
+            waterDataAvailable == 2 -> "2 Meters: ${String.format("%.0f", mikeWaterReading)}L / ${String.format("%.0f", allenWaterReading)}L"
+            waterDataAvailable == 1 -> "1 Meter Reading Available"
+            metersOnline > 0 -> "$metersOnline Meters Online"
+            else -> "No Meter Data"
         }
     }
 

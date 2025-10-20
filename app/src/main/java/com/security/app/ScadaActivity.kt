@@ -32,6 +32,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.coroutines.delay
 import java.util.Timer
 import java.util.TimerTask
+import android.graphics.Color
 
 class ScadaActivity : AppCompatActivity() {
 
@@ -45,13 +46,20 @@ class ScadaActivity : AppCompatActivity() {
     private lateinit var outdoorHumidityTextView: TextView
     private lateinit var windSpeedTextView: TextView
     private lateinit var windDirectionTextView: TextView
-    
+
+    // Trend arrow TextViews for geyser
+    private lateinit var waterTempTrendTextView: TextView
+    private lateinit var waterPressureTrendTextView: TextView
+    // Previous values for simple delta-based trend
+    private var prevWaterTemp: Double? = null
+    private var prevWaterPressure: Double? = null
+
     // Firestore reference for security sensors
     private lateinit var db: FirebaseFirestore
-    
+
     // Google Sheets reader for geyser data
     private lateinit var sheetsReader: GoogleSheetsReader
-    
+
     // Analytics variables
     private lateinit var totalPointsValue: TextView
     private lateinit var dataRateValue: TextView
@@ -62,6 +70,7 @@ class ScadaActivity : AppCompatActivity() {
     private lateinit var powerDataCount: TextView
     private lateinit var dvrDataCount: TextView
     private lateinit var dataUsageLastUpdate: TextView
+    private lateinit var dailyPowerTextView: TextView
     private var lastUpdateTime: Long = 0L
     private var totalDataPoints: Int = 0
     private var dataRate: Double = 0.0
@@ -74,6 +83,7 @@ class ScadaActivity : AppCompatActivity() {
         val dvrTemp: Double = 0.0,
         val currentAmps: Double = 0.0,
         val currentPower: Double = 0.0,
+        val dailyPower: Double = 0.0,
         val indoorTemp: Double = 0.0,
         val outdoorTemp: Double = 0.0,
         val humidity: Double = 0.0,
@@ -97,14 +107,14 @@ class ScadaActivity : AppCompatActivity() {
     private lateinit var auth: FirebaseAuth
 
     override fun onCreate(savedInstanceState: Bundle?) {
-    Log.d("ScadaActivity", "onCreate called")
-    super.onCreate(savedInstanceState)
-    setContentView(R.layout.activity_scada)
+        Log.d("ScadaActivity", "onCreate called")
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_scada)
 
         // Initialize views with amps prominent, kW smaller as requested
         ampsTextView = findViewById(R.id.currentAmps)
         kwTextView = findViewById(R.id.currentPower)
-        geyserTempTextView = findViewById(R.id.waterTempValue) 
+        geyserTempTextView = findViewById(R.id.waterTempValue)
         geyserPressureTextView = findViewById(R.id.waterPressureValue)
         dvrTempTextView = findViewById(R.id.dvrTemp)
         indoorTempTextView = findViewById(R.id.indoorTemp)
@@ -112,16 +122,20 @@ class ScadaActivity : AppCompatActivity() {
         outdoorHumidityTextView = findViewById(R.id.outdoorHumidity)
         windSpeedTextView = findViewById(R.id.windSpeed)
         windDirectionTextView = findViewById(R.id.windDirectionArrow)
-        
+
+        // Bind trend arrow TextViews
+        waterTempTrendTextView = findViewById(R.id.waterTempTrend)
+        waterPressureTrendTextView = findViewById(R.id.waterPressureTrend)
+
         // Initialize Firestore for security sensors
         db = FirebaseFirestore.getInstance()
-        
+
         // Initialize Google Sheets reader for geyser data
         sheetsReader = GoogleSheetsReader()
-        
+
         // Set initial values to show amps prominent, kW smaller layout
         ampsTextView.text = "-- A"  // Amps prominently displayed
-        kwTextView.text = "-- kW"  // kW smaller on side  
+        kwTextView.text = "-- kW"  // kW smaller on side
         geyserTempTextView.text = "Loading Sheets..."
         geyserPressureTextView.text = "Loading Sheets..."
         dvrTempTextView.text = "DVR: --°C"
@@ -130,7 +144,12 @@ class ScadaActivity : AppCompatActivity() {
         outdoorHumidityTextView.text = "--%"
         windSpeedTextView.text = "-- km/h"
         windDirectionTextView.text = "↑"
-        
+        // Initialize trend arrows to neutral
+        waterTempTrendTextView.text = "→"
+        waterTempTrendTextView.setTextColor(Color.parseColor("#9FA8DA"))
+        waterPressureTrendTextView.text = "→"
+        waterPressureTrendTextView.setTextColor(Color.parseColor("#9FA8DA"))
+
         // Initialize analytics TextViews
         totalPointsValue = findViewById(R.id.totalPointsValue)
         dataRateValue = findViewById(R.id.dataRateValue)
@@ -141,6 +160,9 @@ class ScadaActivity : AppCompatActivity() {
         powerDataCount = findViewById(R.id.powerDataCount)
         dvrDataCount = findViewById(R.id.dvrDataCount)
         dataUsageLastUpdate = findViewById(R.id.dataUsageLastUpdate)
+        // Bind SCADA daily power card so it displays the parsed daily total (column J)
+        dailyPowerTextView = findViewById(R.id.dailyPower)
+        dailyPowerTextView.text = "-- kWh"
 
         // Lights control views
         lightsStatus = findViewById(R.id.lightsStatus)
@@ -179,7 +201,7 @@ class ScadaActivity : AppCompatActivity() {
                     } catch (e: Exception) {
                         Log.e("ScadaActivity", "[DEBUG] Error writing 'Lights on' to Drive", e)
                         withContext(Dispatchers.Main) {
-                            android.widget.Toast.makeText(this@ScadaActivity, "[DEBUG] Drive write error: \\${e.message}", android.widget.Toast.LENGTH_LONG).show()
+                            android.widget.Toast.makeText(this@ScadaActivity, "[DEBUG] Drive write error: \\\${e.message}", android.widget.Toast.LENGTH_LONG).show()
                         }
                     }
                 }
@@ -213,7 +235,7 @@ class ScadaActivity : AppCompatActivity() {
                     } catch (e: Exception) {
                         Log.e("ScadaActivity", "[DEBUG] Error writing 'Lights off' to Drive", e)
                         withContext(Dispatchers.Main) {
-                            android.widget.Toast.makeText(this@ScadaActivity, "[DEBUG] Drive write error: \\${e.message}", android.widget.Toast.LENGTH_LONG).show()
+                            android.widget.Toast.makeText(this@ScadaActivity, "[DEBUG] Drive write error: \\\${e.message}", android.widget.Toast.LENGTH_LONG).show()
                         }
                     }
                 }
@@ -222,9 +244,9 @@ class ScadaActivity : AppCompatActivity() {
 
         // Setup click listeners for graphs
         setupGraphClickListeners()
-        
+
         // Firebase monitoring removed - all data now from Google Sheets
-        
+
         // Start Google Sheets monitoring for geyser data
         monitorGeyserData()
 
@@ -246,40 +268,40 @@ class ScadaActivity : AppCompatActivity() {
             startActivityForResult(googleSignInClient.signInIntent, RC_SIGN_IN)
         }
     }
-    
+
     private fun setupGraphClickListeners() {
         // Weather section click - show weather graphs
         findViewById<android.widget.LinearLayout>(R.id.weatherSection).setOnClickListener {
             val intent = Intent(this, WeatherGraphsActivity::class.java)
             startActivity(intent)
         }
-        
-        // Power section click - show power graphs  
+
+        // Power section click - show power graphs
         findViewById<androidx.cardview.widget.CardView>(R.id.powerSection).setOnClickListener {
             val intent = Intent(this, PowerGraphsActivity::class.java)
             startActivity(intent)
         }
-        
+
         // Geyser section click - show geyser graphs
         findViewById<androidx.cardview.widget.CardView>(R.id.geyserSection).setOnClickListener {
             val intent = Intent(this, GeyserGraphsActivity::class.java)
             startActivity(intent)
         }
-        
+
         // DVR section click - show DVR graphs
         findViewById<androidx.cardview.widget.CardView>(R.id.dvrSection).setOnClickListener {
             val intent = Intent(this, DvrGraphsActivity::class.java)
             startActivity(intent)
         }
-        
+
         // Back button functionality
         findViewById<android.widget.TextView>(R.id.scadaBackButton).setOnClickListener {
             finish()
         }
     }
-    
+
     // Firebase monitoring removed - all data now comes from Google Sheets
-    
+
     private fun updateAnalytics(latestReading: GeyserReading) {
         // Count data points (all fields are always present)
         val points = 10 // number of fields in GeyserReading
@@ -316,18 +338,25 @@ class ScadaActivity : AppCompatActivity() {
             try {
                 // Fetch latest readings from Google Sheets (real geyser data)
                 val sensorReadings = withContext(Dispatchers.IO) {
-                    sheetsReader.fetchLatestReadings(1) // Get just the latest reading
+                    sheetsReader.fetchLatestReadings(2) // Get the two most recent readings so we can compute an initial trend immediately
                 }
-                
+
                 if (sensorReadings.isNotEmpty()) {
+                    // If we have two rows, set previous values from the older row (index 1) so the trend arrow can be computed immediately
+                    if (sensorReadings.size >= 2) {
+                        val older = sensorReadings[1]
+                        prevWaterTemp = older.waterTemp.toDouble()
+                        prevWaterPressure = older.waterPressure.toDouble()
+                    }
                     // Convert SensorReading to GeyserReading
-                    val s = sensorReadings[0]
+                    val s = sensorReadings[0] // most recent row
                     val latestReading = GeyserReading(
                         waterTemp = s.waterTemp.toDouble(),
                         waterPressure = s.waterPressure.toDouble(),
                         dvrTemp = s.dvrTemp.toDouble(),
                         currentAmps = s.currentAmps.toDouble(),
                         currentPower = s.currentPower.toDouble(),
+                        dailyPower = s.dailyPower.toDouble(),
                         indoorTemp = s.indoorTemp.toDouble(),
                         outdoorTemp = s.outdoorTemp.toDouble(),
                         humidity = s.humidity.toDouble(),
@@ -337,6 +366,8 @@ class ScadaActivity : AppCompatActivity() {
                     // Update UI with REAL data from Google Sheets (LAST ROW)
                     geyserTempTextView.text = String.format("%.1f°C", latestReading.waterTemp)
                     geyserPressureTextView.text = String.format("%.1f bar", latestReading.waterPressure)
+                    // Show daily power (kWh) on the SCADA card
+                    dailyPowerTextView.text = String.format("%.1f kWh", latestReading.dailyPower)
                     dvrTempTextView.text = String.format("%.1f°C", latestReading.dvrTemp)
                     ampsTextView.text = String.format("%.1f A", latestReading.currentAmps)
                     kwTextView.text = String.format("%.2f kW", latestReading.currentPower)
@@ -345,6 +376,52 @@ class ScadaActivity : AppCompatActivity() {
                     outdoorHumidityTextView.text = String.format("%.0f%%", latestReading.humidity)
                     windSpeedTextView.text = String.format("%.1f km/h", latestReading.windSpeed)
                     windDirectionTextView.text = getWindDirectionArrow(latestReading.windDirection)
+
+                    // Simple delta-based trend for geyser temp + pressure
+                    // small deadband to avoid flicker
+                    val tempThreshold = 0.2
+                    val pressureThreshold = 0.05
+
+                    // Temperature trend
+                    prevWaterTemp?.let { prev ->
+                        when {
+                            latestReading.waterTemp > prev + tempThreshold -> {
+                                waterTempTrendTextView.text = "↑"
+                                waterTempTrendTextView.setTextColor(Color.parseColor("#4CAF50")) // green
+                            }
+                            latestReading.waterTemp < prev - tempThreshold -> {
+                                waterTempTrendTextView.text = "↓"
+                                waterTempTrendTextView.setTextColor(Color.parseColor("#F44336")) // red
+                            }
+                            else -> {
+                                waterTempTrendTextView.text = "→"
+                                waterTempTrendTextView.setTextColor(Color.parseColor("#9FA8DA")) // neutral
+                            }
+                        }
+                    }
+
+                    // Pressure trend
+                    prevWaterPressure?.let { prevP ->
+                        when {
+                            latestReading.waterPressure > prevP + pressureThreshold -> {
+                                waterPressureTrendTextView.text = "↑"
+                                waterPressureTrendTextView.setTextColor(Color.parseColor("#4CAF50"))
+                            }
+                            latestReading.waterPressure < prevP - pressureThreshold -> {
+                                waterPressureTrendTextView.text = "↓"
+                                waterPressureTrendTextView.setTextColor(Color.parseColor("#F44336"))
+                            }
+                            else -> {
+                                waterPressureTrendTextView.text = "→"
+                                waterPressureTrendTextView.setTextColor(Color.parseColor("#9FA8DA"))
+                            }
+                        }
+                    }
+
+                    // Update previous values after computing trend
+                    prevWaterTemp = latestReading.waterTemp
+                    prevWaterPressure = latestReading.waterPressure
+
                     // Update analytics with the latest reading
                     updateAnalytics(latestReading)
                 } else {
@@ -365,7 +442,7 @@ class ScadaActivity : AppCompatActivity() {
             }, 30000) // Update every 30 seconds
         }
     }
-    
+
     // Convert wind direction degrees to directional arrow
     private fun getWindDirectionArrow(degrees: Float): String {
         return when (degrees.toInt()) {
@@ -441,7 +518,7 @@ class ScadaActivity : AppCompatActivity() {
             }
         }
     }
-    
+
     private fun firebaseAuthWithGoogle(account: GoogleSignInAccount) {
         Log.d("ScadaActivity", "firebaseAuthWithGoogle called with account: ${account.email}")
         if (account.idToken.isNullOrEmpty()) {

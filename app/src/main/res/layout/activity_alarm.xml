@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#cc0000">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:padding="24dp">
+
+        <TextView
+            android:id="@+id/alarmZoneText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="BREACH"
+            android:textColor="#FFFFFF"
+            android:textSize="32sp"
+            android:textStyle="bold"
+            android:gravity="center" />
+
+        <TextView
+            android:id="@+id/alarmInfoText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Both sensors active — Alarm triggered"
+            android:textColor="#FFFFFF"
+            android:textSize="18sp"
+            android:gravity="center"
+            android:layout_marginTop="12dp" />
+
+        <Button
+            android:id="@+id/dismissAlarmButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="DISMISS"
+            android:layout_marginTop="40dp"
+            android:backgroundTint="#FFFFFF"
+            android:textColor="#CC0000" />
+
+    </LinearLayout>
+
+</FrameLayout>

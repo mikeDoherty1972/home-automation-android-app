@@ -159,6 +159,45 @@
             android:layout_gravity="center"
             android:layout_marginTop="8dp" />
 
+        <!-- Raw CSV preview for debugging (hidden unless needed) -->
+        <androidx.cardview.widget.CardView
+            android:id="@+id/dvrRawCsvCard"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:visibility="gone"
+            app:cardBackgroundColor="#111111"
+            app:cardCornerRadius="8dp"
+            app:cardElevation="2dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="12dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="🔎 Trend CSV Preview"
+                    android:textSize="14sp"
+                    android:textColor="#ffffff"
+                    android:textStyle="bold"
+                    android:layout_marginBottom="8dp" />
+
+                <TextView
+                    android:id="@+id/dvrRawCsvPreview"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text=""
+                    android:textSize="12sp"
+                    android:textColor="#cccccc"
+                    android:lineSpacingExtra="2dp" />
+
+            </LinearLayout>
+
+        </androidx.cardview.widget.CardView>
+
     </LinearLayout>
 
 </ScrollView>

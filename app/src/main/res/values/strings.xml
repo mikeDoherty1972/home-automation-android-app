@@ -5,4 +5,45 @@
     <string name="channel_name">Security Notifications</string>
     <string name="channel_description">Notifications for security system alerts</string>
     <string name="default_web_client_id">741577311231-rl2tf92edh9a84edpro9hpc14pr70uc3.apps.googleusercontent.com</string>
+
+    <!-- Weather graphs strings -->
+    <string name="weather_trends_label">📅 Weather Trends</string>
+    <string name="weather_trends_date">📅 Weather Trends - %1$s</string>
+    <string name="weather_trends_count">📅 Weather Trends - %1$d readings from Google Sheets</string>
+    <string name="weather_trends_no_data">📅 Weather Trends - No data available</string>
+    <string name="weather_trends_error">📅 Weather Trends - Error loading data</string>
+
+    <string name="back_button">← Back</string>
+    <string name="temperature_trends">🌡️ Temperature Trends</string>
+    <string name="humidity_trends">💧 Humidity Trends</string>
+    <string name="wind_speed_trends">🌪️ Wind Speed Trends</string>
+    <string name="wind_direction">🧭 Wind Direction</string>
+    <string name="data_source">📊 Data source: Google Sheets (Last 24 hours)</string>
+
+    <!-- DVR strings -->
+    <string name="dvr_trends_label">📅 DVR Temperature Monitoring</string>
+    <string name="dvr_trends_date">📅 DVR Temperature Monitoring - %1$s</string>
+    <string name="dvr_trends_count">📅 DVR Temperature - %1$d readings from Google Sheets</string>
+    <string name="dvr_trends_no_data">📅 DVR Temperature - No data available</string>
+    <string name="dvr_trends_error">📅 DVR Temperature - Error loading data</string>
+    <string name="dvr_no_dvr_data">🔍 No DVR data available</string>
+    <string name="dvr_running_normal">DVR Running Normal - %1$s°C</string>
+    <string name="dvr_running_warm">DVR Running Warm - %1$s°C</string>
+    <string name="dvr_running_hot">DVR Running Hot - %1$s°C</string>
+    <string name="no_data_label">No Data</string>
+
+    <!-- Alarm strings -->
+    <string name="breach_format">BREACH: %1$s</string>
+
+    <!-- Power consumption strings -->
+    <string name="power_consumption_date">📅 Power Consumption - %1$s</string>
+    <string name="power_consumption_count">📅 Power Consumption - %1$d readings from Google Sheets</string>
+    <string name="power_consumption_no_data">📅 Power Consumption - No data available</string>
+    <string name="power_consumption_error">📅 Power Consumption - Error loading data</string>
+
+    <!-- Geyser performance strings -->
+    <string name="geyser_performance_date">📅 Geyser Performance - %1$s</string>
+    <string name="geyser_performance_count">📅 Geyser Performance - %1$d readings from Google Sheets</string>
+    <string name="geyser_performance_no_data">📅 Geyser Performance - No data available</string>
+    <string name="geyser_performance_error">📅 Geyser Performance - Error loading data</string>
 </resources>
